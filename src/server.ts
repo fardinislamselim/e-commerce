@@ -1,9 +1,10 @@
 import { createServer, Server } from 'http';
 import colors from 'colors';
+import prisma from '@app/utils/prisma.js';
+import config from '@app/config/index.js';
+import app from 'app.js';
 
-import app from './app';
-import config from './app/config';
-import prisma from './app/utils/prisma';
+
 
 let server: Server;
 const socketServer = createServer(app);

@@ -1,51 +1,114 @@
-import { ErrorRequestHandler } from 'express';
-import httpStatus from 'http-status';
+import type { ErrorRequestHandler } from 'express';
 import { ZodError } from 'zod';
-import AppError from '../error/AppError';
-import handleDuplicateError from '../error/DuplicateError';
-import handleZodError from '../error/ZodError';
-import ValidationError, {
-  toValidationResponse,
-} from '../error/ValidationError';
-import { TErrorSources, TGenericErrorResponse } from '../interface/error';
+import type { TErrorSources } from '@app/interface/error.js';
+import handleZodError from '@app/error/ZodError.js';
+import handleDuplicateError from '@app/error/DuplicateError.js';
+import handlePrismaValidationError from '@app/error/PrismaValidationError.js';
+import handlePrismaKnownError from '@app/error/PrismaKnownError.js';
+import AppError from '@app/error/AppError.js';
+import config from '@app/config/index.js'; 
+import { Prisma } from '../../../generated/prisma/index.js';
 
-const globalErrorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
-  let statusCode: number = httpStatus.INTERNAL_SERVER_ERROR;
-  let message = 'Something went wrong';
-  let errorSources: TErrorSources = [{ path: null, message }];
+const globalErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
+  //setting default values
+  let statusCode = 500;
+  let message = 'Something went wrong!';
+  let errorSources: TErrorSources = [
+    {
+      path: '',
+      message: 'Something went wrong',
+    },
+  ];
 
   if (err instanceof ZodError) {
-    const result = handleZodError(err);
-    statusCode = result.statusCode;
-    message = result.message;
-    errorSources = result.errorSources;
-  } else if (err instanceof ValidationError) {
-    const result = toValidationResponse(err);
-    statusCode = result.statusCode;
-    message = result.message;
-    errorSources = result.errorSources;
+    const simplifiedError = handleZodError(err);
+    statusCode = simplifiedError?.statusCode;
+    message = simplifiedError?.message;
+    errorSources = simplifiedError?.errorSources;
+  } else if (
+    err instanceof Prisma.PrismaClientKnownRequestError &&
+    err.code === 'P2002'
+  ) {
+    const simplifiedError = handleDuplicateError(err);
+    statusCode = simplifiedError.statusCode;
+    message = simplifiedError.message;
+    errorSources = simplifiedError.errorSources;
+  } else if (err instanceof Prisma.PrismaClientValidationError) {
+    const simplifiedError = handlePrismaValidationError(err);
+    statusCode = simplifiedError.statusCode;
+    message = simplifiedError.message;
+    errorSources = simplifiedError.errorSources;
+  } else if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    // Duplicate
+    if (err.code === 'P2002') {
+      const simplifiedError = handleDuplicateError(err);
+      statusCode = simplifiedError.statusCode;
+      message = simplifiedError.message;
+      errorSources = simplifiedError.errorSources;
+    }
+    // Other validation / constraint errors
+    else {
+      const simplifiedError = handlePrismaKnownError(err);
+      statusCode = simplifiedError.statusCode;
+      message = simplifiedError.message;
+      errorSources = simplifiedError.errorSources;
+    }
   } else if (err instanceof AppError) {
-    statusCode = err.statusCode;
+    statusCode = err?.statusCode;
     message = err.message;
-    errorSources = [{ path: null, message }];
-  } else if (err?.code === 'P2002') {
-    const result: TGenericErrorResponse = handleDuplicateError(err);
-    statusCode = result.statusCode;
-    message = result.message;
-    errorSources = result.errorSources;
+    errorSources = [
+      {
+        path: '',
+        message: err?.message,
+      },
+    ];
   } else if (err instanceof Error) {
     message = err.message;
-    errorSources = [{ path: null, message }];
+    errorSources = [
+      {
+        path: '',
+        message: err?.message,
+      },
+    ];
   }
 
-  res.status(statusCode).json({
-    success: false,
-    message,
-    errorSources,
-    ...(process.env.NODE_ENV === 'development' && {
-      stack: err instanceof Error ? err.stack : undefined,
-    }),
-  });
+  //ultimate return
+  if (errorSources?.length !== 0) {
+    errorSources = errorSources.map(source => {
+      try {
+        return {
+          ...source,
+          message: source?.message,
+        };
+      } catch (error) {
+        return {
+          ...source,
+          message: source?.message,
+        };
+      }
+    });
+    // message = req.t(message);
+  }
+  try {
+    res.status(statusCode).json({
+      success: false,
+      message: message,
+      // message: message,
+      errorSources: errorSources,
+      err,
+      stack: config.NODE_ENV === 'development' ? err?.stack : null,
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (err: any) {
+    res.status(statusCode).json({
+      success: false,
+      // message: message? req.t(message) : null,
+      message: message,
+      errorSources,
+      err,
+      stack: config.NODE_ENV === 'development' ? err?.stack : null,
+    });
+  }
 };
 
 export default globalErrorHandler;

@@ -1,13 +1,14 @@
-import { NextFunction, Request, Response } from 'express';
-import { ZodTypeAny } from 'zod';
-import catchAsync from '../utils/catchAsync';
+import { type NextFunction, type Request, type Response } from 'express';
+
+import catchAsync from '@app/utils/catchAsync.js';
+import type { ZodType } from 'zod';
 
 type RequestWithFiles = Request & {
   files?: unknown;
   file?: unknown;
 };
 
-const validateRequest = (schema: ZodTypeAny) => {
+const validateRequest = (schema: ZodType) => {
   return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     const request = req as RequestWithFiles;
 

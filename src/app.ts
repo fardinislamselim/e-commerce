@@ -1,13 +1,15 @@
-import express, { Application, Request, Response } from "express";
+import express, {
+  type Application,
+  type Request,
+  type Response,
+} from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import httpStatus from "http-status";
 
-import router from "./app/routes";
-import globalErrorHandler from "./app/middleware/globalErrorhandler";
-import notFound from "./app/middleware/notFound";
-import AppError from "./app/error/AppError";
-
+import router from "@app/routes/index.js";
+import notFound from "@app/middleware/notFound.js";
+import globalErrorHandler from "@app/middleware/globalErrorhandler.js";
 
 const app: Application = express();
 
@@ -25,7 +27,7 @@ app.use(
 // application routes
 app.use("/api/v1", router);
 
-app.get("/", (_req, res) => {
+app.get("/", (req: Request, res: Response) => {
   res.status(httpStatus.OK).json({
     success: true,
     message: "Welcome to the E-commerce API",
@@ -33,14 +35,13 @@ app.get("/", (_req, res) => {
   });
 });
 
-app.get("/health", (_req, res) => {
+app.get("/health", (req: Request, res: Response) => {
   res.status(httpStatus.OK).json({
     success: true,
     message: "Server is healthy",
     timestamp: new Date().toString(),
   });
 });
-
 
 // Not-found must run before the error handler so all errors reach one response path.
 app.use(notFound);

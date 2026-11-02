@@ -1,16 +1,53 @@
 {
-    "compilerOptions": {
-        "module": "esnext",
-        "moduleResolution": "bundler",
-        "target": "es2023",
-        "rootDir": "./",
-        "outDir": "./dist",
-        "strict": true,
-        "esModuleInterop": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true,
-        "ignoreDeprecations": "5.0"
+  // Visit https://aka.ms/tsconfig to read more about this file
+  "compilerOptions": {
+    // File Layout
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "baseUrl": "./src",
+    "paths": {
+      "@prisma": ["generated/prisma/index"],
+      "@prisma/*": ["generated/prisma/*"],
+      "@app/*": ["app/*"]
     },
-    "include": ["src", "prisma.config.ts"],
-    "exclude": ["node_modules", "dist"]
+
+    // Environment Settings
+    // See also https://aka.ms/tsconfig/module
+    "module": "nodenext",
+    "moduleResolution": "nodenext", // Added: Required for nodenext module system
+    "target": "es2022",
+    "lib": ["es2022"], // Added: Includes ES2022 features for Node.js
+    "types": ["node"], // Changed: Includes Node.js types (install @types/node if not already)
+
+    // Other Outputs
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+
+    // Stricter Typechecking Options
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+    // Style Options
+    // "noImplicitReturns": true,
+    // "noImplicitOverride": true,
+    // "noUnusedLocals": true,
+    // "noUnusedParameters": true,
+    // "noFallthroughCasesInSwitch": true,
+    // "noPropertyAccessFromIndexSignature": true,
+
+    // Recommended Options
+    "strict": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": false, // Changed: Not needed with nodenext (can cause conflicts)
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": false, // Added: Enforce TypeScript-only files
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noUncheckedSideEffectImports": true,
+    "moduleDetection": "force"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
